@@ -189,18 +189,32 @@ function updateCannonjsWorld() {
   });
 }
 
-window.addEventListener('keydown', (e) => {
-  if (e.key === ' ') {
-    e.preventDefault();
-    eventHandler();
+const isMobile = getDeviceType();
+console.log(isMobile);
+
+if (isMobile) {
+  window.addEventListener('click', (e) => {
+    if (!isGameOver && isGameStarted) {
+      eventHandler();
+    } else {
+      resetGame();
+    }
     return;
-  }
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    resetGame();
-    return;
-  }
-});
+  });
+} else {
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      eventHandler();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      resetGame();
+      return;
+    }
+  });
+}
 
 function eventHandler() {
   if (!isGameStarted) {
@@ -410,3 +424,15 @@ function fail() {
 //   scene.remove(box.threejsBox);
 //   world.remove(box.cannonjsBox);
 // }
+
+function getDeviceType() {
+  const userAgent = navigator.userAgent;
+
+  // 检测是否是移动设备
+  const isMobile =
+    /Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      userAgent
+    );
+
+  return isMobile;
+}
