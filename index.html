@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stack Bricks</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <div
+    id="score"
+    style="
+      position: absolute;
+      color: aquamarine;
+      font-size: 4em;
+      font-weight: bolder;
+      top: 20px;
+      right: 20px;
+    "
+  >
+    0
+  </div>
+  <div
+    id="highscore"
+    style="
+      position: absolute;
+      color: orange;
+      font-size: 4em;
+      font-weight: bolder;
+      top: 90px;
+      right: 20px;
+    "
+  >
+    0
+  </div>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <script src="index.js"></script>
+  </body>
+</html>
