@@ -3,7 +3,7 @@
 const CANNON = window.CANNON;
 
 let world;
-let camera, scene, renderer, controls, stats;
+let camera, scene, renderer;
 let stackArr;
 let dropsArr;
 let speed;
@@ -13,61 +13,13 @@ let isGameOver;
 const score = document.getElementById('score');
 const highScore = document.getElementById('highscore');
 
+const startButton = document.getElementById('start');
+
 const clickAudio = new Audio('./assets/click.wav');
 const gameOverAudio = new Audio('./assets/gameOver.wav');
 const perfectMatchAudio = new Audio('./assets/perfectMatch.wav');
 
-const vertexShader = `
-varying vec3 vNormal;
-varying vec3 vViewPosition;
-void main() {
-    vNormal = normal;
-    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-    vViewPosition = viewPosition.xyz;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-}`;
-
-const fragmentShader = `
-varying vec3 vNormal;
-varying vec3 vViewPosition;
-
-uniform vec3 lightPosition;
-uniform vec3 lightColor;
-uniform float shininess;
-uniform vec3 colorArray;
-uniform float metalness;
-
-
-void main() {
-  vec3 normal = normalize(vNormal);
-  vec3 viewDirection = normalize(-vViewPosition);
-  vec3 lightDirection = normalize(lightPosition - vViewPosition);
-  
-  // Diffuse Reflection
-  float diffuse = max(dot(normal, lightDirection), 0.0);
-  vec3 diffuseColor = diffuse * lightColor;
-  
-  // Specular Reflection
-  vec3 reflectionDirection = reflect(-lightDirection, normal);
-  float specular = pow(max(dot(reflectionDirection, viewDirection), 0.0), shininess);
-  vec3 specularColor = specular * lightColor;
-
-//   vec3 col;
-//     col.r=(sin(gl_FragCoord.x)+1.0)/2.0;
-//     col.g=(cos(gl_FragCoord.y)+1.0)/2.0;
-//     col.b=(cos(gl_FragCoord.z*2.0)+1.0)/2.0;
-
-  
-  // Combine Diffuse and Specular
-  vec3 finalColor = diffuseColor + specularColor+ colorArray;
-  
-  gl_FragColor = vec4(finalColor, 1.0);
-}`;
-
-const metalFragmentShader = `
-varying vec3 vNormal;
-varying vec3 vViewPosition;
-    `;
+let startScreenCube;
 
 init();
 
@@ -101,18 +53,44 @@ function init() {
   world.broadphase = new CANNON.NaiveBroadphase();
   world.solver.iterations = 40;
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setAnimationLoop(animation);
   document.body.appendChild(renderer.domElement);
+  startButton.addEventListener('click', startGame);
+
+  // add start screen cube
+
+  const geometry = new THREE.BoxGeometry(2, 2, 2);
+  const material = new THREE.MeshLambertMaterial({ color: 0xffa500 });
+  startScreenCube = new THREE.Mesh(geometry, material);
+  startScreenCube.position.set(0, 0, 0);
+  scene.add(startScreenCube);
+  console.log(scene.position);
+}
+
+function startGame() {
+  startButton.style.display = 'none';
+  scene.remove(startScreenCube);
+  startScreenCube.geometry.dispose();
+  startScreenCube.material.dispose();
+  renderer.setAnimationLoop(animation);
+  resetGame();
 }
 
 function animation() {
   speed = 0.15;
-  if (isGameStarted && !isGameOver) {
+
+  if (startScreenCube) {
+    startScreenCube.rotation.x += 0.01;
+    startScreenCube.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  }
+
+  if (isGameStarted) {
     const topBox = stackArr[stackArr.length - 1];
     topBox.threejsBox.position[topBox.dir] += speed + stackArr.length / 1000;
 
@@ -123,6 +101,7 @@ function animation() {
       previousBox.threejsBox.position[topBox.dir];
     if (offset > 10) {
       fail();
+      renderer.setAnimationLoop(null);
     }
     if (camera.position.y < stackArr.length - 2 + 4) {
       camera.position.y += speed;
@@ -133,22 +112,61 @@ function animation() {
 }
 
 function addBox(x, y, z, xSize, zSize, isDropping) {
-  const color = new THREE.Color(`hsl(${30 + stackArr.length * 4}, 100%, 50%)`);
+  const color = new THREE.Color(`hsl(${10 + stackArr.length * 8}, 100%, 50%)`);
   const colorArray = color.toArray();
 
   const geometry = new THREE.BoxGeometry(xSize, 1, zSize);
-  const material = new THREE.ShaderMaterial({
-    vertexShader,
-    fragmentShader,
-    uniforms: {
-      lightPosition: { value: new THREE.Vector3(10, 20, 0) },
-      lightColor: { value: new THREE.Color(0xffffff) },
-      shininess: { value: 9 },
-      colorArray: { value: colorArray },
-    },
-  });
-  //   const lambertMaterial = new THREE.MeshLambertMaterial({
-  //     color: color,
+  const material = new THREE.MeshLambertMaterial({ color });
+
+  //   const vertexShader = `
+  // varying vec3 vNormal;
+  // varying vec3 vViewPosition;
+  // void main() {
+  //     vNormal = normal;
+  //     vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+  //     vViewPosition = viewPosition.xyz;
+  //     gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+  // }`;
+
+  //   const fragmentShader = `
+  // varying vec3 vNormal;
+  // varying vec3 vViewPosition;
+
+  // uniform vec3 lightPosition;
+  // uniform vec3 lightColor;
+  // uniform float shininess;
+  // uniform vec3 colorArray;
+  // uniform float metalness;
+
+  // void main() {
+  //   vec3 normal = normalize(vNormal);
+  //   vec3 viewDirection = normalize(-vViewPosition);
+  //   vec3 lightDirection = normalize(lightPosition - vViewPosition);
+
+  //   // Diffuse Reflection
+  //   float diffuse = max(dot(normal, lightDirection), 0.0);
+  //   vec3 diffuseColor = diffuse * lightColor;
+
+  //   // Specular Reflection
+  //   vec3 reflectionDirection = reflect(-lightDirection, normal);
+  //   float specular = pow(max(dot(reflectionDirection, viewDirection), 0.0), shininess);
+  //   vec3 specularColor = specular * lightColor;
+
+  //   // Combine Diffuse and Specular
+  //   vec3 finalColor = diffuseColor + specularColor+ colorArray;
+
+  //   gl_FragColor = vec4(finalColor, 1.0);
+  // }`;
+
+  //   const material = new THREE.ShaderMaterial({
+  //     vertexShader,
+  //     fragmentShader,
+  //     uniforms: {
+  //       lightPosition: { value: new THREE.Vector3(10, 20, 0) },
+  //       lightColor: { value: new THREE.Color(0xffffff) },
+  //       shininess: { value: 1 },
+  //       colorArray: { value: colorArray },
+  //     },
   //   });
   const threejsBox = new THREE.Mesh(geometry, material);
   threejsBox.position.set(x, y, z);
@@ -190,14 +208,13 @@ function updateCannonjsWorld() {
 }
 
 const isMobile = getDeviceType();
-console.log(isMobile);
 
 if (isMobile) {
   window.addEventListener('click', (e) => {
     if (!isGameOver && isGameStarted) {
-      eventHandler();
+      spaceDownHandler();
     } else {
-      resetGame();
+      startGame();
     }
     return;
   });
@@ -205,22 +222,22 @@ if (isMobile) {
   window.addEventListener('keydown', (e) => {
     if (e.key === ' ') {
       e.preventDefault();
-      eventHandler();
+      spaceDownHandler();
       return;
     }
     if (e.key === 'Enter') {
       e.preventDefault();
-      resetGame();
+      startGame();
       return;
     }
   });
 }
 
-function eventHandler() {
+function spaceDownHandler() {
   if (!isGameStarted) {
-    resetGame();
+    startGame();
     return;
-  } else {
+  } else if (!isGameOver) {
     continueGame();
     return;
   }
@@ -362,6 +379,7 @@ function spiltBox(topBox, delta, overlapSize) {
 }
 
 function fail() {
+  console.log('fail');
   gameOverAudio.play();
 
   const topBox = stackArr[stackArr.length - 1];
@@ -383,9 +401,7 @@ function fail() {
       highScore.innerText = scoreValue;
     }
   }
-  setTimeout(() => {
-    isGameOver = true;
-  }, 1000);
+  isGameOver = true;
 
   return;
 }
@@ -428,7 +444,6 @@ function fail() {
 function getDeviceType() {
   const userAgent = navigator.userAgent;
 
-  // 检测是否是移动设备
   const isMobile =
     /Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       userAgent
